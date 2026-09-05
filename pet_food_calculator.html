@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Калькулятор рациона питомцев</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg-dark:#9b8ec7;--bg-light:#f0eef7;--text-dark:#2d2d44;--text-light:#ffffff;--accent:#7a6db5;--success:#66BB6A;--danger:#e8927c;--warning:#d4a017;--card-bg:#ffffff;--peach:#f4a261}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg-dark);min-height:100vh;padding:20px;color:var(--text-dark);font-size:17px}
+.container{max-width:1400px;margin:0 auto}
+h1{text-align:center;color:var(--text-light);font-size:2em;margin-bottom:20px}
+h2{color:var(--text-dark);font-size:1.2em;margin-bottom:12px;font-weight:700;text-align:center}
+.card{background:var(--card-bg);border-radius:12px;padding:15px;box-shadow:0 2px 12px rgba(0,0,0,.15);margin-bottom:15px}
+.top-row{display:grid;grid-template-columns:1fr 1fr;gap:15px;margin-bottom:15px}
+.form-group{display:flex;align-items:center;gap:8px;margin-bottom:8px;justify-content:space-between}
+.form-group label{flex:0 0 auto;min-width:130px;font-weight:600;font-size:.95em;white-space:nowrap}
+.form-group select,.form-group input{flex:0 0 300px;padding:6px 10px;border:2px solid #ddd;border-radius:6px;font-size:.95em;width:300px}
+.form-group select:focus,.form-group input:focus{outline:0;border-color:var(--accent)}
+.summary-box{display:flex;gap:12px;margin-top:12px}
+.summary-item{flex:1;background:var(--bg-light);border-radius:8px;padding:12px;text-align:center}
+.summary-item .label{font-size:.9em;color:#666;margin-bottom:4px}
+.summary-item .value{font-size:1.5em;font-weight:700;color:var(--text-dark)}
+.cat-row{display:flex;align-items:center;gap:8px;margin-bottom:16px;justify-content:flex-start;position:relative;padding:4px 0}
+.cat-row label{flex:0 0 auto;min-width:140px;font-weight:600;font-size:.95em}
+.cat-row input[type=number]{width:55px;padding:4px 6px;border:2px solid #ddd;border-radius:6px;text-align:center;font-size:.95em;position:absolute;left:50%;transform:translateX(-50%)}
+.cat-row .range{font-size:.85em;color:#888;min-width:60px;text-align:right;margin-left:auto}
+.cat-row input.within{border-color:var(--success)}
+.cat-row input.outside{border-color:var(--danger);background:#fff5f5}
+.sum-row{margin:10px 0;padding:8px;border-radius:6px;text-align:center;font-weight:700;font-size:1.05em}
+.sum-row.ok{background:#d4edda;color:#155724}
+.sum-row.bad{background:#f8d7da;color:#721c24}
+.completeness{margin:8px 0;padding:8px;border-radius:6px;font-size:.95em}
+.completeness.ok{background:#d4edda;color:#155724}
+.completeness.warn{background:#f8d7da;color:#721c24}
+.btn{padding:8px 16px;border:none;border-radius:8px;font-size:1em;font-weight:600;cursor:pointer;transition:opacity .2s;color:#fff}
+.btn:hover{opacity:.85}
+.btn-primary{background:var(--accent)}
+.btn-success{background:#d4edda;color:#155724}
+.btn-danger{background:var(--peach)}
+.btn-sm{padding:5px 10px;font-size:.9em}
+.table-header{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px}
+.filters{display:flex;gap:8px;flex-wrap:wrap}
+.filter-btn{padding:5px 12px;border:2px solid var(--accent);background:#fff;color:var(--accent);border-radius:20px;font-size:.9em;font-weight:600;cursor:pointer;transition:all .3s}
+.filter-btn.active{background:var(--accent);color:#fff}
+.table-wrapper{overflow-x:auto;-webkit-overflow-scrolling:touch;margin-bottom:10px}
+table{width:100%;border-collapse:collapse;min-width:600px}
+th,td{padding:6px 4px;text-align:center;border-bottom:1px solid #e0e0e0;white-space:nowrap;font-size:.95em}
+th{background:var(--accent);color:#fff;font-size:.85em;position:sticky;top:0;z-index:1;white-space:normal;min-width:60px}
+td input{width:65px;padding:4px 6px;border:1px solid #ddd;border-radius:6px;font-size:.95em;text-align:center}
+td input[type=text]{text-align:left;width:90px}
+tbody tr:hover{background:#f8f9fa}
+.totals-row{font-weight:700;background:#f0f0f5!important}
+.totals-row td{font-size:.9em;color:var(--text-dark)}
+.delete-btn{background:#f8d7da;color:#721c24;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:.9em;margin-right:6px}
+.add-btn{background:#d4edda;color:#155724;border:none;padding:4px 8px;border-radius:6px;cursor:pointer;font-size:.9em;margin-right:4px}
+.add-btn:disabled{background:var(--peach);color:#fff;cursor:default;opacity:.9}
+.cat-cell{background:#f8f7ff;font-weight:600;vertical-align:middle;text-align:left!important;padding-left:8px}
+.empty-msg{text-align:center;padding:20px;color:#999;font-style:italic;font-size:.95em}
+.mgmt-section{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.mgmt-section .form-group{flex:1;min-width:180px;margin-bottom:0}
+.mgmt-buttons{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+.col-daily,.col-per-meal,.col-volume,.col-available,.col-buy,.col-price,.col-ration-cost,.col-purchase-cost{display:none}
+table.show-all .col-daily,table.show-all .col-per-meal,table.show-all .col-volume,table.show-all .col-available,table.show-all .col-buy,table.show-all .col-price,table.show-all .col-ration-cost,table.show-all .col-purchase-cost{display:table-cell}
+table.show-per_meal .col-per-meal{display:table-cell}
+table.show-daily .col-daily{display:table-cell}
+table.show-purchase .col-volume,table.show-purchase .col-available,table.show-purchase .col-buy,table.show-purchase .col-price,table.show-purchase .col-ration-cost,table.show-purchase .col-purchase-cost{display:table-cell}
+table.show-all{min-width:auto;width:100%}
+table.show-per_meal,table.show-daily{min-width:500px}
+table.show-purchase{min-width:700px}
+table.show-per_meal.show-daily{min-width:600px}
+table.show-per_meal.show-purchase{min-width:800px}
+table.show-daily.show-purchase{min-width:800px}
+table.show-per_meal.show-daily.show-purchase{min-width:1200px}
+.modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.5);display:none;justify-content:center;align-items:center;z-index:100}
+.modal-overlay.active{display:flex}
+.modal{background:#fff;border-radius:12px;padding:20px;max-width:400px;width:90%;text-align:center}
+.modal h3{margin-bottom:15px;color:var(--text-dark)}
+.modal-buttons{display:flex;gap:10px;justify-content:center;margin-top:15px}
+.add-product-form{display:none;margin-top:12px;padding:12px;background:var(--bg-light);border-radius:8px}
+.add-product-form.active{display:block}
+.block-header{display:flex;justify-content:center;align-items:center;margin-bottom:10px}
+.block-header h2{margin-bottom:0}
+@media(max-width:900px){.top-row{grid-template-columns:1fr}}
+@media(max-width:600px){h1{font-size:1.5em}.card{padding:12px}.btn{padding:10px 14px;font-size:.85em}.form-group{flex-direction:column;align-items:flex-start}.form-group label{min-width:0}.form-group select,.form-group input{width:100%}}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🐕 Калькулятор рациона питомцев 🐈</h1>
+<div class="top-row">
+<div class="card">
+<h2>🐾 Параметры питомца</h2>
+<div class="form-group"><label>Тип питомца</label><select id="petType"><option value="">выбрать</option><option value="dog">🐕 Собака</option><option value="cat">🐈 Кошка</option></select></div>
+<div class="form-group" id="breedSizeGroup"><label>Размер породы</label><select id="breedSize"><option value="">выбрать</option><option value="large">Крупная</option><option value="small">Мелкая</option></select></div>
+<div class="form-group"><label>Возраст</label><select id="age"></select></div>
+<div class="form-group"><label>Вес питомца (кг)</label><input type="number" id="weight" value="" min="0" step="0.1" placeholder="выбрать"></div>
+<div class="form-group"><label>Кормлений в день</label><select id="feedings"></select></div>
+<div class="form-group"><label>% от веса</label><select id="percent"></select></div>
+<div class="form-group"><label>Период закупки (дней)</label><input type="number" id="periodDays" value="" min="1"></div>
+<div class="summary-box">
+<div class="summary-item"><div class="label">Суточный рацион</div><div class="value" id="dailyTotal">0 г</div></div>
+<div class="summary-item"><div class="label">Разовое кормление</div><div class="value" id="perMealTotal">0 г</div></div>
+</div>
+</div>
+<div class="card">
+<div class="block-header">
+<h2>📊 Категории продуктов</h2>
+</div>
+<div class="sum-row" id="percentSum"></div>
+<div id="categoriesContainer"></div>
+</div>
+</div>
+<div class="card">
+<div class="table-header">
+<h2>📋 Рацион</h2>
+<div class="filters">
+<button class="filter-btn active" data-filter="all">Все</button>
+<button class="filter-btn" data-filter="per_meal">Разовое</button>
+<button class="filter-btn" data-filter="daily">Суточное</button>
+<button class="filter-btn" data-filter="purchase">Закупка</button>
+</div>
+</div>
+<div class="completeness" id="completeness"></div>
+<div class="table-wrapper">
+<table id="productsTable"><thead><tr>
+<th class="col-category">Категория</th><th class="col-product">Продукт</th><th class="col-share" title="Доля в рационе">% в<br>рационе</th>
+<th class="col-daily">Суточный<br>рацион<br>(г)</th><th class="col-per-meal">Разовое<br>кормление<br>(г)</th>
+<th class="col-volume">Объём<br>на период<br>(кг)</th><th class="col-available">Есть в<br>наличии<br>(кг)</th>
+<th class="col-buy">Купить<br>(кг)</th><th class="col-price">Цена<br>(руб/кг)</th>
+<th class="col-ration-cost">Стоимость<br>рациона<br>(руб)</th><th class="col-purchase-cost">Стоимость<br>закупки<br>(руб)</th>
+</tr></thead><tbody id="productsBody"></tbody><tfoot id="productsFoot"></tfoot></table>
+</div>
+</div>
+<div class="card">
+<div class="block-header">
+<h2>📦 Список продуктов</h2>
+<button class="btn btn-success" onclick="toggleAddForm()">➕ Добавить новый продукт</button>
+</div>
+<div class="table-wrapper">
+<table id="availableTable"><thead><tr><th>Категория</th><th>Продукт</th><th>Добавить в рацион</th><th>Удалить продукт</th></tr></thead><tbody id="availableBody"></tbody></table>
+</div>
+<div class="add-product-form" id="addProductForm">
+<div class="mgmt-section">
+<div class="form-group"><label>Название продукта</label><input type="text" id="newAvailName" placeholder="Введите название"></div>
+<div class="form-group"><label>Категория</label><select id="newAvailCategory"></select></div>
+<button class="btn btn-success" onclick="addAvailableProduct()">➕ Добавить в список</button>
+</div>
+</div>
+<div class="mgmt-buttons">
+<button class="btn btn-primary" onclick="exportJSON()">📥 Экспорт JSON</button>
+<button class="btn btn-primary" onclick="document.getElementById('importFile').click()">📤 Импорт JSON</button>
+<input type="file" id="importFile" accept=".json" style="display:none" onchange="importJSON(event)">
+<button class="btn btn-danger" onclick="resetToDefaults()">🔄 Сброс к значениям по умолчанию</button>
+</div>
+</div>
+</div>
+<div class="modal-overlay" id="deleteModal">
+<div class="modal">
+<h3>⚠️ Предупреждение</h3>
+<p>Продукт будет удален из списка доступных продуктов</p>
+<div class="modal-buttons">
+<button class="btn btn-danger" onclick="confirmDelete()">Да</button>
+<button class="btn btn-primary" onclick="closeModal()">Нет</button>
+</div>
+</div>
+</div>
+<script>
+const AGE_NORMS={
+dog:{large:[{v:'1.5-5',l:'1,5-5 мес',f:[2,3],p:[7,8]},{v:'5-6',l:'5-6 мес',f:[2],p:[4,5]},{v:'6-9',l:'6-9 мес',f:[2],p:[3,4]},{v:'9+',l:'>9 мес',f:[1,2],p:[2,3]}],
+small:[{v:'1.5-2',l:'1,5-2 мес',f:[3,4],p:[10,12]},{v:'2-4',l:'2-4 мес',f:[3],p:[9,11]},{v:'4-6',l:'4-6 мес',f:[2,3],p:[5,6]},{v:'6-12',l:'6-12 мес',f:[2],p:[4,5]},{v:'12+',l:'>12 мес',f:[2],p:[3,4]}]},
+cat:[{v:'1.5-6',l:'1,5-6 мес',f:[3,4],p:[10]},{v:'6-12',l:'6-12 мес',f:[2,3],p:[8,10]},{v:'12+',l:'>12 мес',f:[2],p:[3,5]}]
+};
+const CATEGORIES={
+dog:[{name:'Мясо',icon:'🥩',min:40,max:50},{name:'Мясокостное',icon:'🦴',min:20,max:50},{name:'Мышечное',icon:'💪',min:30,max:30},{name:'Кроветворное',icon:'🩸',min:5,max:10},{name:'Кроветворное2',icon:'🧠',min:10,max:20},{name:'Рыба',icon:'🐟',min:10,max:10}],
+cat:[{name:'Мясо',icon:'🥩',min:20,max:30},{name:'Мясокостное',icon:'🦴',min:25,max:40},{name:'Мышечное',icon:'💪',min:10,max:20},{name:'Кроветворное',icon:'🩸',min:5,max:5},{name:'Кроветворное2',icon:'🧠',min:10,max:15},{name:'Рыба',icon:'🐟',min:10,max:10}]
+};
+const DEFAULT_CAT_PERCENTS={dog:{'Мясо':40,'Мясокостное':20,'Мышечное':30,'Кроветворное':5,'Кроветворное2':10,'Рыба':10},cat:{'Мясо':25,'Мясокостное':30,'Мышечное':15,'Кроветворное':5,'Кроветворное2':15,'Рыба':10}};
+const DEFAULT_PRODUCTS=[
+{name:'Мякоть',category:'Мясо'},{name:'Обрезь',category:'Мясо'},{name:'Диафрагма',category:'Мясо'},{name:'Пикало (пищевод)',category:'Мясо'},
+{name:'Шея птицы',category:'Мясокостное'},{name:'Голова птицы',category:'Мясокостное'},{name:'Хвост КРС',category:'Мясокостное'},{name:'Каркас птицы',category:'Мясокостное'},{name:'Рагу',category:'Мясокостное'},
+{name:'Желудок',category:'Мышечное'},{name:'Сердце',category:'Мышечное'},{name:'Рубец',category:'Мышечное'},{name:'Вымя',category:'Мышечное'},{name:'Легкое',category:'Мышечное'},
+{name:'Печень',category:'Кроветворное'},{name:'Почки',category:'Кроветворное'},{name:'Селезенка',category:'Кроветворное'},
+{name:'Семенники',category:'Кроветворное2'},{name:'Мозги',category:'Кроветворное2'},
+{name:'Рыба морская',category:'Рыба'}
+];
+let state={petType:'',breedSize:'',age:'',weight:'',feedings:0,percent:0,periodDays:'',customMode:false,categories:{},availableProducts:[],rationProducts:[],activeFilters:[]};
+let nextId=1;
+let pendingDeleteId=null;
+function getCategories(){return CATEGORIES[state.petType]}
+function getAgeNorms(){return state.petType==='cat'?AGE_NORMS.cat:AGE_NORMS.dog[state.breedSize]}
+function findAgeNorm(v){return getAgeNorms().find(a=>a.v===v)||getAgeNorms()[0]}
+function saveState(){try{localStorage.setItem('petCalcState',JSON.stringify(state))}catch(e){}}
+function loadState(){try{const s=localStorage.getItem('petCalcState');if(s){const p=JSON.parse(s);state={...state,...p};if(!state.availableProducts||!state.availableProducts.length)state.availableProducts=createDefaultAvailable();if(!state.rationProducts)state.rationProducts=[];if(!state.categories)state.categories={...DEFAULT_CAT_PERCENTS[state.petType]};if(!state.activeFilters)state.activeFilters=[];nextId=Math.max(1,...state.availableProducts.map(p=>p.id||0),...state.rationProducts.map(p=>p.id||0))+1}}catch(e){}}
+function createDefaultAvailable(){return DEFAULT_PRODUCTS.map(p=>({id:nextId++,name:p.name,category:p.category}))}
+function initDefaultState(){state.availableProducts=createDefaultAvailable();state.rationProducts=[];state.categories={};state.customMode=false}
+function escapeHtml(s){const d=document.createElement('div');d.textContent=String(s);return d.innerHTML}
+function fmt(n,d=1){if(isNaN(n)||!isFinite(n))return '0';return Number(n).toFixed(d)}
+function fmtInt(n){if(isNaN(n)||!isFinite(n))return '0';return Math.round(Number(n)).toString()}
+function fmt3(n){if(isNaN(n)||!isFinite(n))return '0';return Number(n).toFixed(3)}
+function calcDailyRation(){return(state.weight||0)*(state.percent||0)*10}
+function generatePercentOptions(range){const opts=[];const min=Math.min(...range);const max=Math.max(...range);for(let v=min;v<=max;v+=0.5){opts.push(v)}return opts}
+function getFeedingsOptions(norm){return norm.f}
+function getPercentOptions(norm){return generatePercentOptions(norm.p)}
+function updateFeedingsDropdown(){const sel=document.getElementById('feedings');const norm=findAgeNorm(state.age);const opts=getFeedingsOptions(norm);sel.innerHTML='';const emptyOpt=document.createElement('option');emptyOpt.value='';emptyOpt.textContent='выбрать';sel.appendChild(emptyOpt);opts.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;sel.appendChild(o)});if(opts.includes(state.feedings)&&state.feedings>0){sel.value=state.feedings}else{sel.value='';state.feedings=0}}
+function updatePercentDropdown(){const sel=document.getElementById('percent');const norm=findAgeNorm(state.age);const opts=getPercentOptions(norm);sel.innerHTML='';const emptyOpt=document.createElement('option');emptyOpt.value='';emptyOpt.textContent='выбрать';sel.appendChild(emptyOpt);opts.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v+'%';sel.appendChild(o)});if(opts.includes(state.percent)&&state.percent>0){sel.value=state.percent}else{sel.value='';state.percent=0}}
+function updateAgeDropdown(){const sel=document.getElementById('age');const norms=getAgeNorms()||[];const cur=state.age;sel.innerHTML='';const emptyOpt=document.createElement('option');emptyOpt.value='';emptyOpt.textContent='выбрать';sel.appendChild(emptyOpt);norms.forEach(a=>{const o=document.createElement('option');o.value=a.v;o.textContent=a.l;sel.appendChild(o)});if(norms.find(a=>a.v===cur)&&cur!==''){sel.value=cur}else{sel.value='';state.age=''}updateFeedingsDropdown();updatePercentDropdown()}
+function applyAgeNorm(){const n=findAgeNorm(state.age);const fOpts=getFeedingsOptions(n);const pOpts=getPercentOptions(n);state.feedings=fOpts[0];state.percent=pOpts[Math.floor(pOpts.length/2)];document.getElementById('feedings').value=state.feedings;document.getElementById('percent').value=state.percent}
+function updateBreedSizeVisibility(){document.getElementById('breedSizeGroup').style.display=state.petType==='dog'?'flex':'none'}
+function updateNewAvailCategoryDropdown(){const sel=document.getElementById('newAvailCategory');sel.innerHTML='';getCategories().forEach(c=>{const o=document.createElement('option');o.value=c.name;o.textContent=c.icon+' '+c.name;sel.appendChild(o)})}
+function renderCategories(){const cont=document.getElementById('categoriesContainer');cont.innerHTML='';const cats=getCategories();if(!cats||cats.length===0)return;cats.forEach(cat=>{const pct=state.categories[cat.name]||'';const row=document.createElement('div');row.className='cat-row';const lbl=document.createElement('label');lbl.textContent=cat.icon+' '+cat.name;const inp=document.createElement('input');inp.type='number';inp.value=pct;inp.min=0;inp.step=1;inp.onchange=e=>{state.categories[cat.name]=parseFloat(e.target.value)||0;saveState();renderCategories();renderTable()};if(pct!==''){if(pct>=cat.min&&pct<=cat.max)inp.classList.add('within');else inp.classList.add('outside')}const rng=document.createElement('span');rng.className='range';rng.textContent=`(${cat.min}-${cat.max}%)`;row.appendChild(lbl);row.appendChild(inp);row.appendChild(rng);cont.appendChild(row)});updatePercentSum()}
+function updatePercentSum(){const sum=Object.values(state.categories).reduce((a,b)=>a+(parseFloat(b)||0),0);const el=document.getElementById('percentSum');if(!state.petType){el.className='sum-row';el.textContent='';return}if(Math.abs(sum-100)<0.01){el.className='sum-row ok';el.textContent='✅ Сумма: '+Math.round(sum)+'%'}else{el.className='sum-row bad';el.textContent='⚠️ Сумма: '+Math.round(sum)+'% (нужно 100%)'}}
+function updateCompleteness(){const el=document.getElementById('completeness');const present=new Set(state.rationProducts.map(p=>p.category));const cats=getCategories();const missing=cats.filter(c=>{const pct=state.categories[c.name]||0;if(pct===0)return false;if(c.name==='Рыба')return false;if(c.name==='Кроветворное'||c.name==='Кроветворное2')return!present.has('Кроветворное')&&!present.has('Кроветворное2');return!present.has(c.name)});if(missing.length===0){el.className='completeness ok';el.textContent='✅ Все категории представлены'}else{el.className='completeness warn';el.textContent='⚠️ Нет продуктов: '+missing.map(c=>c.icon+' '+c.name).join(', ')}}
+function getCategoryShare(catName){const prods=state.rationProducts.filter(p=>p.category===catName);if(prods.length===0)return 0;if(prods.length===1)return state.categories[catName]||0;const catPct=state.categories[catName]||0;return catPct/prods.length}
+function validateCategoryShares(){const cats=getCategories();let errors=[];cats.forEach(cat=>{const prods=state.rationProducts.filter(p=>p.category===cat.name);if(prods.length===0)return;const totalShare=prods.reduce((s,p)=>s+(p.share||0),0);const catPct=state.categories[cat.name]||0;if(Math.abs(totalShare-catPct)>0.01){errors.push(`${cat.icon} ${cat.name}: сумма % в рационе (${totalShare.toFixed(1)}) ≠ % категории (${catPct})`)}});return errors}
+function renderTable(){const body=document.getElementById('productsBody');const foot=document.getElementById('productsFoot');body.innerHTML='';if(state.rationProducts.length===0){body.innerHTML='<tr><td colspan="11" class="empty-msg">Нет продуктов. Добавьте продукты из списка доступных.</td></tr>';foot.innerHTML='';updateCompleteness();return}const cats=getCategories();const grouped={};cats.forEach(c=>{grouped[c.name]=[]});state.rationProducts.forEach(p=>{if(grouped[p.category])grouped[p.category].push(p)});let totals={daily:0,perMeal:0,volume:0,available:0,buy:0,rationCost:0,purchaseCost:0};cats.forEach(cat=>{const products=grouped[cat.name];if(products.length===0)return;const totalShare=products.reduce((s,p)=>s+(p.share||0),0)||100;const catPct=state.categories[cat.name]||0;const catDaily=calcDailyRation()*catPct/100;products.forEach((product,idx)=>{const share=(product.share||0)/totalShare;const daily=catDaily*share;const perMeal=state.feedings>0?daily/state.feedings:0;const volume=daily*(state.periodDays||0)/1000;const buy=Math.max(0,volume-(product.available||0));const rationCost=volume*(product.price||0);const purchaseCost=buy*(product.price||0);totals.daily+=daily;totals.perMeal+=perMeal;totals.volume+=volume;totals.available+=product.available||0;totals.buy+=buy;totals.rationCost+=rationCost;totals.purchaseCost+=purchaseCost;const tr=document.createElement('tr');if(idx===0){tr.innerHTML=`<td class="col-category cat-cell" rowspan="${products.length}">${cat.icon} ${cat.name}</td>`}tr.innerHTML+=`<td class="col-product" style="text-align:left"><button class="delete-btn" data-id="${product.id}">🗑️</button>${escapeHtml(product.name)}</td>
+<td class="col-share"><input type="number" value="${fmtInt(product.share||0)}" min="0" step="1" data-id="${product.id}" data-field="share"></td>
+<td class="col-daily">${fmtInt(daily)}</td>
+<td class="col-per-meal">${fmtInt(perMeal)}</td>
+<td class="col-volume">${fmt3(volume)}</td>
+<td class="col-available"><input type="number" value="${fmt3(product.available||0)}" min="0" step="0.001" data-id="${product.id}" data-field="available"></td>
+<td class="col-buy">${fmt3(buy)}</td>
+<td class="col-price"><input type="number" value="${product.price||0}" min="0" step="1" data-id="${product.id}" data-field="price"></td>
+<td class="col-ration-cost">${fmt(rationCost,0)}</td>
+<td class="col-purchase-cost">${fmt(purchaseCost,0)}</td>`;body.appendChild(tr)})});foot.innerHTML=`<tr class="totals-row"><td class="col-category" colspan="2">ИТОГО:</td>
+<td class="col-share">${fmtInt(state.rationProducts.reduce((s,p)=>s+(p.share||0),0))}</td>
+<td class="col-daily">${fmtInt(totals.daily)}</td><td class="col-per-meal">${fmtInt(totals.perMeal)}</td>
+<td class="col-volume">${fmt3(totals.volume)}</td><td class="col-available">${fmt3(totals.available)}</td>
+<td class="col-buy">${fmt3(totals.buy)}</td><td class="col-price">—</td>
+<td class="col-ration-cost">${fmt(totals.rationCost,0)}</td><td class="col-purchase-cost">${fmt(totals.purchaseCost,0)}</td>
+</tr>`;updateCompleteness();const shareErrors=validateCategoryShares();if(shareErrors.length>0){const errEl=document.createElement('div');errEl.className='completeness warn';errEl.textContent='⚠️ '+shareErrors.join('; ');body.appendChild(errEl)}}
+function renderAvailable(){const body=document.getElementById('availableBody');body.innerHTML='';const cats=getCategories();const grouped={};cats.forEach(c=>{grouped[c.name]=[]});state.availableProducts.forEach(p=>{if(grouped[p.category])grouped[p.category].push(p)});cats.forEach(cat=>{const products=grouped[cat.name];if(products.length===0)return;products.forEach((p,idx)=>{const tr=document.createElement('tr');if(idx===0){tr.innerHTML=`<td class="cat-cell" rowspan="${products.length}">${cat.icon} ${cat.name}</td>`}const isAdded=state.rationProducts.some(r=>r.name===p.name);const btnClass=isAdded?'add-btn':'add-btn';const btnText=isAdded?'✅ Добавлено':'➕ В рацион';const disabledAttr=isAdded?'disabled':'';tr.innerHTML+=`<td>${escapeHtml(p.name)}</td><td><button class="${btnClass}" data-id="${p.id}" ${disabledAttr}>${btnText}</button></td><td><button class="delete-btn" data-id="${p.id}">🗑️ Удалить</button></td>`;body.appendChild(tr)})})}
+function updateSummary(){const daily=calcDailyRation();const perMeal=state.feedings>0?daily/state.feedings:0;document.getElementById('dailyTotal').textContent=fmtInt(daily)+' г';document.getElementById('perMealTotal').textContent=fmtInt(perMeal)+' г'}
+function applyFilter(){const table=document.getElementById('productsTable');table.className='';if(state.activeFilters.length===0){table.classList.add('show-all')}else{state.activeFilters.forEach(f=>table.classList.add('show-'+f))}document.querySelectorAll('.filter-btn').forEach(b=>{if(b.dataset.filter==='all'){b.classList.toggle('active',state.activeFilters.length===0)}else{b.classList.toggle('active',state.activeFilters.includes(b.dataset.filter))}})}
+function renderAll(){updateBreedSizeVisibility();updateAgeDropdown();updateNewAvailCategoryDropdown();renderCategories();renderTable();renderAvailable();updateSummary();applyFilter()}
+function onPetTypeChange(){state.petType=document.getElementById('petType').value;state.categories={};if(state.petType==='cat')state.breedSize='large';state.feedings=0;state.percent=0;saveState();renderAll()}
+function onBreedSizeChange(){state.breedSize=document.getElementById('breedSize').value;state.feedings=0;state.percent=0;saveState();renderAll()}
+function onAgeChange(){state.age=document.getElementById('age').value;state.feedings=0;state.percent=0;updateFeedingsDropdown();updatePercentDropdown();saveState();renderTable();updateSummary()}
+function onWeightChange(){const val=document.getElementById('weight').value;state.weight=val===''?'':parseFloat(val)||0;saveState();renderTable();updateSummary()}
+function onFeedingsChange(){state.feedings=parseInt(document.getElementById('feedings').value)||0;saveState();renderTable();updateSummary()}
+function onPercentChange(){state.percent=parseFloat(document.getElementById('percent').value)||0;saveState();renderTable();updateSummary()}
+function onPeriodChange(){const val=document.getElementById('periodDays').value;state.periodDays=val===''?'':parseInt(val)||0;saveState();renderTable()}
+function onCustomModeToggle(){state.customMode=document.getElementById('customMode').checked;saveState();renderCategories()}
+function addToRation(id){const p=state.availableProducts.find(x=>x.id===id);if(!p)return;if(state.rationProducts.some(x=>x.name===p.name))return;const catPct=state.categories[p.category]||0;const prodsInCat=state.rationProducts.filter(x=>x.category===p.category);const newCount=prodsInCat.length+1;const newShare=catPct/newCount;prodsInCat.forEach(prod=>{prod.share=newShare});state.rationProducts.push({id:nextId++,name:p.name,category:p.category,share:newShare,available:0,price:0});saveState();renderTable();renderAvailable()}
+function addAvailableProduct(){const name=document.getElementById('newAvailName').value.trim();const category=document.getElementById('newAvailCategory').value;if(!name){alert('Введите название продукта');return}if(state.availableProducts.some(p=>p.name===name)){alert('Такой продукт уже есть в списке');return}state.availableProducts.push({id:nextId++,name,category});document.getElementById('newAvailName').value='';toggleAddForm();saveState();renderAvailable()}
+function deleteAvailable(id){pendingDeleteId=id;document.getElementById('deleteModal').classList.add('active')}
+function confirmDelete(){if(pendingDeleteId===null)return;state.availableProducts=state.availableProducts.filter(p=>p.id!==pendingDeleteId);state.rationProducts=state.rationProducts.filter(p=>p.id!==pendingDeleteId);pendingDeleteId=null;closeModal();saveState();renderAvailable();renderTable()}
+function closeModal(){pendingDeleteId=null;document.getElementById('deleteModal').classList.remove('active')}
+function deleteRation(id){const deleted=state.rationProducts.find(p=>p.id===id);if(!deleted){saveState();renderTable();renderAvailable();return}const catName=deleted.category;state.rationProducts=state.rationProducts.filter(p=>p.id!==id);const catPct=state.categories[catName]||0;const prodsInCat=state.rationProducts.filter(p=>p.category===catName);if(prodsInCat.length>0){const newShare=catPct/prodsInCat.length;prodsInCat.forEach(prod=>{prod.share=newShare})}saveState();renderTable();renderAvailable()}
+function updateRationField(id,field,value){const p=state.rationProducts.find(p=>p.id===id);if(!p)return;if(field==='share'||field==='available'||field==='price')p[field]=parseFloat(value)||0;saveState();renderTable()}
+function toggleFilter(f){if(f==='all'){state.activeFilters=[]}else{const i=state.activeFilters.indexOf(f);if(i>=0)state.activeFilters.splice(i,1);else state.activeFilters.push(f)}saveState();applyFilter()}
+function toggleAddForm(){document.getElementById('addProductForm').classList.toggle('active')}
+function exportJSON(){const data={...state,exportDate:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='pet_food_ration.json';a.click();URL.revokeObjectURL(url)}
+function importJSON(event){const file=event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=e=>{try{const data=JSON.parse(e.target.result);if(data.availableProducts)state.availableProducts=data.availableProducts.map(p=>({id:nextId++,name:p.name,category:p.category}));if(data.rationProducts)state.rationProducts=data.rationProducts.map(p=>({id:nextId++,name:p.name,category:p.category,share:p.share||0,available:p.available||0,price:p.price||0}));if(data.categories)state.categories=data.categories;if(data.petType)state.petType=data.petType;if(data.breedSize)state.breedSize=data.breedSize;if(data.age)state.age=data.age;if(data.weight)data.weight;state.weight=data.weight;if(data.feedings)state.feedings=data.feedings;if(data.percent)state.percent=data.percent;if(data.periodDays)state.periodDays=data.periodDays;if(data.customMode!==undefined)state.customMode=data.customMode;if(data.activeFilters)state.activeFilters=data.activeFilters;saveState();renderAll();alert('Импорт выполнен успешно!')}catch(err){alert('Ошибка импорта: '+err.message)}};reader.readAsText(file);event.target.value=''}
+function resetToDefaults(){if(!confirm('Сбросить список продуктов и категории к значениям по умолчанию?'))return;initDefaultState();saveState();renderAll()}
+function init(){state={petType:'',breedSize:'',age:'',weight:'',feedings:0,percent:0,periodDays:'',customMode:false,categories:{},availableProducts:[],rationProducts:[],activeFilters:[]};initDefaultState();document.getElementById('petType').value='';document.getElementById('breedSize').value='';document.getElementById('weight').value='';document.getElementById('periodDays').value='';document.getElementById('petType').addEventListener('change',onPetTypeChange);document.getElementById('breedSize').addEventListener('change',onBreedSizeChange);document.getElementById('age').addEventListener('change',onAgeChange);document.getElementById('weight').addEventListener('input',onWeightChange);document.getElementById('feedings').addEventListener('change',onFeedingsChange);document.getElementById('percent').addEventListener('change',onPercentChange);document.getElementById('periodDays').addEventListener('input',onPeriodChange);document.querySelectorAll('.filter-btn').forEach(b=>b.addEventListener('click',()=>toggleFilter(b.dataset.filter)));document.getElementById('productsBody').addEventListener('change',e=>{const t=e.target;if(t.dataset.id){updateRationField(parseInt(t.dataset.id),t.dataset.field,t.value)}});document.getElementById('productsBody').addEventListener('click',e=>{const b=e.target.closest('.delete-btn');if(b)deleteRation(parseInt(b.dataset.id))});document.getElementById('availableBody').addEventListener('click',e=>{const addBtn=e.target.closest('.add-btn');if(addBtn){addToRation(parseInt(addBtn.dataset.id));return}const delBtn=e.target.closest('.delete-btn');if(delBtn)deleteAvailable(parseInt(delBtn.dataset.id))});renderAll()}
+init();
+</script>
+</body>
+</html>
