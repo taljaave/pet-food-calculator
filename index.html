@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ru">
 <head>
 <meta charset="UTF-8">
@@ -364,6 +364,29 @@ function loadProfileData(profile) {
     state.rationProducts = profile.rationProducts || [];
     state.activeFilters = profile.activeFilters || [];
     nextId = profile.nextId || 1;
+    // Обновляем UI
+    document.getElementById('petType').value = state.petType || '';
+    document.getElementById('breedSize').value = state.breedSize || '';
+    updateBreedSizeVisibility();
+    updateAgeDropdown();
+    if (state.age) {
+        var sel = document.getElementById('age');
+        var option = sel.querySelector('option[value="'+state.age+'"]');
+        if (option) sel.value = state.age;
+        updateFeedingsDropdown();
+        if (window.findAgeNorm) {
+            var norm = findAgeNorm(state.age);
+            var fOpts = getFeedingsOptions(norm);
+            var pOpts = generatePercentOptions(norm);
+            if (!fOpts.includes(state.feedings)) state.feedings = fOpts[0];
+            if (!pOpts.includes(state.percent)) state.percent = pOpts[Math.floor(pOpts.length/2)];
+        }
+        document.getElementById('feedings').value = state.feedings || '';
+        updatePercentHint();
+        document.getElementById('percent').value = state.percent || '';
+    }
+    document.getElementById('weight').value = state.weight || '';
+    document.getElementById('periodDays').value = state.periodDays || '';
 }
 
 function saveCurrentProfile() {
@@ -459,8 +482,8 @@ function renderTable(){const body=document.getElementById('productsBody');const 
 function renderAvailable(){const body=document.getElementById('availableBody');body.innerHTML='';const cats=getCategories();if(!cats||cats.length===0)return;const grouped={};cats.forEach(c=>{grouped[c.name]=[]});state.availableProducts.forEach(p=>{if(grouped[p.category]){grouped[p.category].push(p)}});cats.forEach(cat=>{const products=grouped[cat.name];if(products.length===0)return;products.forEach((p,idx)=>{const tr=document.createElement('tr');if(idx===0){tr.innerHTML=`<td class="cat-cell" rowspan="${products.length}">${cat.icon} ${cat.name}</td>`}const isAdded=state.rationProducts.some(r=>r.name===p.name);const btnClass=isAdded?'add-btn':'add-btn';const btnText=isAdded?'✅ Добавлено':'➕ В рацион';const disabledAttr=isAdded?'disabled':'';tr.innerHTML+=`<td>${escapeHtml(p.name)}</td><td><button class="${btnClass}" data-id="${p.id}" ${disabledAttr}>${btnText}</button></td><td><button class="delete-btn" data-id="${p.id}">🗑️ Удалить</button></td>`;body.appendChild(tr)})})}
 function updateSummary(){const daily=calcDailyRation();const perMeal=state.feedings>0?daily/state.feedings:0;document.getElementById('dailyTotal').textContent=fmtInt(daily)+' г';document.getElementById('perMealTotal').textContent=fmtInt(perMeal)+' г'}
 function applyFilter(){const table=document.getElementById('productsTable');table.className='';if(state.activeFilters.length===0){table.classList.add('show-all')}else{state.activeFilters.forEach(f=>table.classList.add('show-'+f))}document.querySelectorAll('.filter-btn').forEach(b=>{if(b.dataset.filter==='all'){b.classList.toggle('active',state.activeFilters.length===0)}else{b.classList.toggle('active',state.activeFilters.includes(b.dataset.filter))}})}
-function renderAll(){updateBreedSizeVisibility();updateAgeDropdown();updateNewAvailCategoryDropdown();renderCategories();renderTable();renderAvailable();updateSummary();applyFilter()}
-function onPetTypeChange(){state.petType=document.getElementById('petType').value;state.categories=state.petType?{...DEFAULT_CAT_PERCENTS[state.petType]}:{};if(state.petType==='cat'){state.breedSize='large'}else if(state.petType==='dog'){state.breedSize='large'};state.age='';state.feedings=0;state.percent=0;saveCurrentProfile();renderAll()}
+function renderAll(){document.getElementById('petType').value=state.petType||'';document.getElementById('breedSize').value=state.breedSize||'';updateBreedSizeVisibility();updateAgeDropdown();updateNewAvailCategoryDropdown();renderCategories();renderTable();renderAvailable();updateSummary();applyFilter()}
+function onPetTypeChange(){state.petType=document.getElementById('petType').value;state.categories=state.petType?{...DEFAULT_CAT_PERCENTS[state.petType]}:{};if(state.petType==='cat'){state.breedSize='large'}else if(state.petType==='dog'){state.breedSize='large'};state.age='';state.feedings=0;state.percent=0;saveCurrentProfile();renderAll();document.getElementById('petType').value=state.petType||'';document.getElementById('breedSize').value=state.breedSize||'';updateAgeDropdown();document.getElementById('feedings').value=state.feedings||'';updatePercentHint();document.getElementById('percent').value=state.percent||''}
 function onBreedSizeChange(){state.breedSize=document.getElementById('breedSize').value;state.feedings=0;state.percent=0;saveCurrentProfile();renderAll()}
 function onAgeChange(){state.age=document.getElementById('age').value;if(state.age){applyAgeNorm()}else{state.feedings=0;state.percent=0;document.getElementById('feedings').value='';document.getElementById('percent').value='';updatePercentHint()}saveCurrentProfile();renderTable();updateSummary()}
 function onWeightChange(){const val=document.getElementById('weight').value;state.weight=val===''?'':parseFloat(val)||0;saveCurrentProfile();renderTable();updateSummary()}
@@ -474,7 +497,8 @@ function deleteAvailable(id){pendingDeleteId=id;deleteType='product';document.ge
 function confirmDelete(){if(pendingDeleteId===null)return;if(deleteType==='profile'){profiles=profiles.filter(p=>p.id!==pendingDeleteId);if(currentProfileId===pendingDeleteId){currentProfileId=profiles.length>0?profiles[0].id:null}saveProfiles();updateProfileSelect();if(currentProfileId){const p=getCurrentProfile();loadProfileData(p)}else{initDefaultState()}renderAll()}else{state.availableProducts=state.availableProducts.filter(p=>p.id!==pendingDeleteId);state.rationProducts=state.rationProducts.filter(p=>p.id!==pendingDeleteId);saveState();renderAvailable();renderTable()}pendingDeleteId=null;closeModal()}
 function closeModal(){pendingDeleteId=null;document.getElementById('deleteModal').classList.remove('active')}
 function deleteRation(id){const deleted=state.rationProducts.find(p=>p.id===id);if(!deleted){saveState();renderTable();renderAvailable();return}const catName=deleted.category;state.rationProducts=state.rationProducts.filter(p=>p.id!==id);const catPct=state.categories[catName]||0;const prodsInCat=state.rationProducts.filter(p=>p.category===catName);if(prodsInCat.length>0){const newShare=catPct/prodsInCat.length;prodsInCat.forEach(prod=>{prod.share=newShare})}saveState();renderTable();renderAvailable()}
-function updateRationField(id,field,value){const p=state.rationProducts.find(p=>p.id===id);if(!p)return;if(field==='share'||field==='available'||field==='price')p[field]=parseFloat(value)||0;saveState();renderTable()}
+function updateRationField(id,field,value){const p=state.rationProducts.find(p=>p.id===id);if(!p)return;if(field==='share'){handleShareChange(p,parseFloat(value)||0);return}if(field==='available'||field==='price')p[field]=parseFloat(value)||0;saveState();renderTable()}
+function handleShareChange(p,ns){var cn=p.category;var ps=state.rationProducts.filter(function(x){return x.category===cn});if(ps.length<=1){p.share=ns;saveState();renderTable();return}var os=ps.filter(function(x){return x.id!==p.id});if(os.length===0){p.share=ns;saveState();renderTable();return}var ot=os.reduce(function(s,x){return s+(x.share||0)},0);if(ot===0){if(confirm('In category "'+cn+'" only 1 product with %. Set '+ns+'%?')){p.share=ns;saveState();renderTable()}}else{var ok=confirm('Change % for "'+p.name+'" from '+p.share+'% to '+ns+'%? OK-redistribute, Cancel-no');if(ok){var rem=100-ns;if(ot>0){var ratio=rem/ot;os.forEach(function(op){op.share=Math.max(0,op.share*ratio)})}p.share=ns}saveState();renderTable()}}
 function toggleFilter(f){if(f==='all'){state.activeFilters=[]}else{const i=state.activeFilters.indexOf(f);if(i>=0)state.activeFilters.splice(i,1);else state.activeFilters.push(f)}saveState();applyFilter()}
 function toggleAddForm(){document.getElementById('addProductForm').classList.toggle('active');if(document.getElementById('addProductForm').classList.contains('active')){updateNewAvailCategoryDropdown()}}
 function exportJSON(){const profile=getCurrentProfile();const data={...state,profileName:profile?profile.name:'',exportDate:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='pet_food_ration.json';a.click();URL.revokeObjectURL(url)}
@@ -483,7 +507,5 @@ function resetToDefaults(){if(!confirm('Сбросить список проду
 function init(){loadProfiles();const profile=getCurrentProfile();if(profile){loadProfileData(profile)}else if(profiles.length===0){initDefaultState()}else{initDefaultState()}if(!state.availableProducts||state.availableProducts.length===0){state.availableProducts=createDefaultAvailable()}document.getElementById('petType').value=state.petType||'';updateBreedSizeVisibility();document.getElementById('breedSize').value=state.breedSize||'';updateAgeDropdown();if(state.age){const sel=document.getElementById('age');if(sel.querySelector(`option[value="${state.age}"]`)){sel.value=state.age;updateFeedingsDropdown();const norm=findAgeNorm(state.age);const fOpts=getFeedingsOptions(norm);const pOpts=generatePercentOptions(norm);if(!fOpts.includes(state.feedings)){state.feedings=fOpts[0]}if(!pOpts.includes(state.percent)){state.percent=pOpts[Math.floor(pOpts.length/2)]}document.getElementById('feedings').value=state.feedings||'';updatePercentHint();document.getElementById('percent').value=state.percent||''}else{state.age='';state.feedings=0;state.percent=0;updateFeedingsDropdown();document.getElementById('feedings').value='';updatePercentHint();document.getElementById('percent').value='';saveState()}}else{updateFeedingsDropdown();document.getElementById('feedings').value='';updatePercentHint();document.getElementById('percent').value=''}document.getElementById('weight').value=state.weight||'';document.getElementById('periodDays').value=state.periodDays||'';updateProfileSelect();document.getElementById('petType').addEventListener('change',onPetTypeChange);document.getElementById('breedSize').addEventListener('change',onBreedSizeChange);document.getElementById('age').addEventListener('change',onAgeChange);document.getElementById('weight').addEventListener('input',onWeightChange);document.getElementById('feedings').addEventListener('change',onFeedingsChange);document.getElementById('percent').addEventListener('input',onPercentChange);document.getElementById('periodDays').addEventListener('input',onPeriodChange);document.querySelectorAll('.filter-btn').forEach(b=>b.addEventListener('click',()=>toggleFilter(b.dataset.filter)));document.getElementById('productsBody').addEventListener('change',e=>{const t=e.target;if(t.dataset.id){updateRationField(parseInt(t.dataset.id),t.dataset.field,t.value)}});document.getElementById('productsBody').addEventListener('click',e=>{const b=e.target.closest('.delete-btn');if(b)deleteRation(parseInt(b.dataset.id))});document.getElementById('availableBody').addEventListener('click',e=>{const addBtn=e.target.closest('.add-btn');if(addBtn){addToRation(parseInt(addBtn.dataset.id));return}const delBtn=e.target.closest('.delete-btn');if(delBtn)deleteAvailable(parseInt(delBtn.dataset.id))});renderCategories();renderTable();renderAvailable();updateSummary();applyFilter()}
 init();
 </script>
-<script src='fixes.js'></script>
-<script src='fix_profile.js'></script>
 </body>
 </html>
